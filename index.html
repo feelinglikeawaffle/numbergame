@@ -66,7 +66,7 @@ function randomOperand(state) {
   const options = [];
 
   // starting number
-  if (state.start !== null) {
+  if (state.start !== null && state.start !== 0) {
     options.push({
       text: "your starting number",
       getValue: (s) => s.start
@@ -74,39 +74,38 @@ function randomOperand(state) {
   }
 
   // last answer
-  if (state.last !== null) {
+  if (state.last !== null && state.last !== 0) {
     options.push({
       text: "your last answer",
       getValue: (s) => s.last
     });
   }
 
-  // some previous answers by index, if they exist
-  if (state.answers.length > 0) {
-    options.push({
-      text: "your first answer",
-      getValue: (s) => s.answers[0]
-    });
-  }
-  if (state.answers.length > 1) {
-    options.push({
-      text: "your second answer",
-      getValue: (s) => s.answers[1]
-    });
-  }
-  if (state.answers.length > 2) {
-    options.push({
-      text: "your third answer",
-      getValue: (s) => s.answers[2]
-    });
+  // previous answers
+  for (let i = 0; i < state.answers.length; i++) {
+    if (state.answers[i] !== 0) {
+      options.push({
+        text: `your answer #${i + 1}`,
+        getValue: (s) => s.answers[i]
+      });
+    }
   }
 
-  // always allow a constant
+  // always allow a constant 1–9
   const constant = Math.floor(Math.random() * 9) + 1;
   options.push({
     text: String(constant),
     getValue: () => constant
   });
+
+  // if somehow everything was filtered out (rare), fallback to constant
+  if (options.length === 0) {
+    const fallback = Math.floor(Math.random() * 9) + 1;
+    return {
+      text: String(fallback),
+      getValue: () => fallback
+    };
+  }
 
   return choice(options);
 }
