@@ -2,17 +2,20 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Level Game</title>
+<title>Infinite Level Math Game</title>
 <style>
-  body { background:#111; color:#fff; font-family:Arial; text-align:center; padding-top:60px; }
+  body { background:#111; color:#fff; font-family:Arial; text-align:center; padding:40px 10px; }
   input { padding:10px; font-size:18px; width:200px; text-align:center; }
   button { padding:10px 20px; font-size:18px; cursor:pointer; margin-left:10px; }
   #feedback { margin-top:20px; font-size:22px; }
+  #history { margin-top:30px; max-width:500px; margin-left:auto; margin-right:auto; text-align:left; font-size:14px; }
+  #history h2 { font-size:18px; margin-bottom:10px; }
+  #history p { margin:3px 0; }
 </style>
 </head>
 <body>
 
-<h1>Level Game</h1>
+<h1>Infinite Level Math Game</h1>
 <p id="levelText">Level: 1</p>
 <p id="questionText"></p>
 
@@ -21,63 +24,205 @@
 
 <div id="feedback"></div>
 
+<div id="history">
+  <h2>Previous Questions</h2>
+  <div id="historyList"></div>
+</div>
+
 <script>
 // ------------------------------
-// GAME MEMORY
+// GAME STATE
 // ------------------------------
 let level = 1;
 let state = {
-  start: null,      // random number for level 1
-  last: null,       // last correct answer
-  answers: []       // all correct answers
+  start: null,        // starting number from level 1
+  last: null,         // last correct answer
+  answers: [],        // all correct answers
+  questions: []       // all question texts
 };
 
 // ------------------------------
-// LEVELS (YOU EDIT THESE)
-// question: text
-// answer: fixed value OR a function(state)
+// UTILS: pick random item
 // ------------------------------
-const levels = [
-  {
-    question: () => {
-      state.start = Math.floor(Math.random() * 99) + 1;
-      return "The answer is " + state.start;
-    },
-    answer: (state) => state.start
-  },
+function choice(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
-  {
-    question: "Add 3 to your starting number.",
-    answer: (state) => state.start + 3
-  },
+// ------------------------------
+// LEVEL 1: special case
+// ------------------------------
+function generateLevel1() {
+  state.start = Math.floor(Math.random() * 99) + 1;
+  const questionText = "The answer is " + state.start;
+  const answerValue = state.start;
+  return { questionText, answerValue };
+}
 
-  {
-    question: "Divide your last answer by 2.",
-    answer: (state) => Math.floor(state.last / 2)
-  },
+// ------------------------------
+// BUILD A RANDOM OPERAND
+// returns { text, getValue(state) }
+// ------------------------------
+function randomOperand(state) {
+  const options = [];
 
-  {
-    question: "Add your first and second answers together.",
-    answer: (state) => state.answers[0] + state.answers[1]
+  // starting number
+  if (state.start !== null) {
+    options.push({
+      text: "your starting number",
+      getValue: (s) => s.start
+    });
   }
 
-  // Add more levels here...
-];
+  // last answer
+  if (state.last !== null) {
+    options.push({
+      text: "your last answer",
+      getValue: (s) => s.last
+    });
+  }
+
+  // some previous answers by index, if they exist
+  if (state.answers.length > 0) {
+    options.push({
+      text: "your first answer",
+      getValue: (s) => s.answers[0]
+    });
+  }
+  if (state.answers.length > 1) {
+    options.push({
+      text: "your second answer",
+      getValue: (s) => s.answers[1]
+    });
+  }
+  if (state.answers.length > 2) {
+    options.push({
+      text: "your third answer",
+      getValue: (s) => s.answers[2]
+    });
+  }
+
+  // always allow a constant
+  const constant = Math.floor(Math.random() * 9) + 1;
+  options.push({
+    text: String(constant),
+    getValue: () => constant
+  });
+
+  return choice(options);
+}
+
+// ------------------------------
+// BUILD A RANDOM OPERATION STEP
+// given a current value, returns { text, apply(value, state) }
+// ------------------------------
+function randomOperationStep() {
+  const ops = ["add", "subtract", "multiply", "divide"];
+  const op = choice(ops);
+  const operand = randomOperand(state);
+
+  if (op === "add") {
+    return {
+      text: "add " + operand.text,
+      apply: (v, s) => v + operand.getValue(s)
+    };
+  }
+  if (op === "subtract") {
+    return {
+      text: "subtract " + operand.text,
+      apply: (v, s) => v - operand.getValue(s)
+    };
+  }
+  if (op === "multiply") {
+    return {
+      text: "multiply by " + operand.text,
+      apply: (v, s) => v * operand.getValue(s)
+    };
+  }
+  // divide
+  return {
+    text: "divide by " + operand.text,
+    apply: (v, s) => {
+      const val = operand.getValue(s) || 1;
+      return Math.floor(v / val);
+    }
+  };
+}
+
+// ------------------------------
+// GENERATE RANDOM LEVEL (2+)
+// complexitySteps:
+// 1–10: 1 step
+// 11–20: 2 steps
+// 21+: 3 steps
+// ------------------------------
+function generateRandomLevel() {
+  let stepsCount = 1;
+  if (level >= 11 && level <= 20) stepsCount = 2;
+  if (level >= 21) stepsCount = 3;
+
+  // starting operand
+  const startOperand = randomOperand(state);
+  let value = startOperand.getValue(state);
+  let textParts = ["Start with " + startOperand.text + "."];
+
+  // apply steps
+  for (let i = 0; i < stepsCount; i++) {
+    const step = randomOperationStep();
+    value = step.apply(value, state);
+    if (i === 0) {
+      textParts.push("Then " + step.text + ".");
+    } else {
+      textParts.push("Then " + step.text + ".");
+    }
+  }
+
+  const questionText = textParts.join(" ");
+  const answerValue = value;
+  return { questionText, answerValue };
+}
+
+// ------------------------------
+// CURRENT QUESTION DATA
+// ------------------------------
+let currentAnswer = null;
 
 // ------------------------------
 // LOAD LEVEL
 // ------------------------------
 function loadLevel() {
-  const data = levels[level - 1];
+  let generated;
 
-  const q = typeof data.question === "function"
-            ? data.question()
-            : data.question;
+  if (level === 1 && state.answers.length === 0) {
+    generated = generateLevel1();
+  } else {
+    generated = generateRandomLevel();
+  }
 
-  document.getElementById("questionText").innerText = q;
+  currentAnswer = generated.answerValue;
+  const qText = generated.questionText;
+
+  state.questions.push(qText);
+
+  document.getElementById("questionText").innerText = qText;
   document.getElementById("answerInput").value = "";
   document.getElementById("feedback").innerText = "";
   document.getElementById("levelText").innerText = "Level: " + level;
+
+  renderHistory();
+}
+
+// ------------------------------
+// RENDER HISTORY
+// ------------------------------
+function renderHistory() {
+  const container = document.getElementById("historyList");
+  container.innerHTML = "";
+  for (let i = 0; i < state.answers.length; i++) {
+    const p = document.createElement("p");
+    p.textContent = "Question " + (i + 1) + ": " + state.questions[i] +
+                    " | Answer: " + state.answers[i];
+    container.appendChild(p);
+  }
 }
 
 // ------------------------------
@@ -85,29 +230,20 @@ function loadLevel() {
 // ------------------------------
 function submitAnswer() {
   const user = document.getElementById("answerInput").value.trim();
-  const data = levels[level - 1];
-
-  // Compute correct answer
-  const correct = (typeof data.answer === "function")
-                  ? String(data.answer(state))
-                  : String(data.answer);
+  const correct = String(currentAnswer);
 
   if (user === correct) {
     document.getElementById("feedback").innerText = "Correct!";
-
-    // Update memory
-    state.last = Number(correct);
-    state.answers.push(Number(correct));
+    const num = Number(correct);
+    state.last = num;
+    state.answers.push(num);
 
     level++;
-    if (level > levels.length) level = 1;
 
   } else {
     document.getElementById("feedback").innerText = "Wrong! Back to Level 1.";
-
-    // Reset everything
     level = 1;
-    state = { start: null, last: null, answers: [] };
+    state = { start: null, last: null, answers: [], questions: [] };
   }
 
   setTimeout(loadLevel, 1000);
