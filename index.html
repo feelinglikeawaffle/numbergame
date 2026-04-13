@@ -23,39 +23,49 @@
 
 <script>
 // ------------------------------
-// LEVEL SYSTEM
+// GAME MEMORY
 // ------------------------------
 let level = 1;
+let state = {
+  start: null,      // random number for level 1
+  last: null,       // last correct answer
+  answers: []       // all correct answers
+};
 
 // ------------------------------
-// LEVEL DATA (YOU EDIT THESE)
+// LEVELS (YOU EDIT THESE)
+// question: text
+// answer: fixed value OR a function(state)
 // ------------------------------
 const levels = [
   {
-    // LEVEL 1 — shows the answer directly
     question: () => {
-      const n = Math.floor(Math.random() * 99) + 1;
-      levels[0].answer = String(n);
-      return "The answer is " + n;
+      state.start = Math.floor(Math.random() * 99) + 1;
+      return "The answer is " + state.start;
     },
-    answer: null
+    answer: (state) => state.start
   },
 
   {
-    question: "What is 5 + 5?",
-    answer: "10"
+    question: "Add 3 to your starting number.",
+    answer: (state) => state.start + 3
   },
 
   {
-    question: "Type the word apple",
-    answer: "apple"
+    question: "Divide your last answer by 2.",
+    answer: (state) => Math.floor(state.last / 2)
+  },
+
+  {
+    question: "Add your first and second answers together.",
+    answer: (state) => state.answers[0] + state.answers[1]
   }
 
   // Add more levels here...
 ];
 
 // ------------------------------
-// LOAD CURRENT LEVEL
+// LOAD LEVEL
 // ------------------------------
 function loadLevel() {
   const data = levels[level - 1];
@@ -75,17 +85,29 @@ function loadLevel() {
 // ------------------------------
 function submitAnswer() {
   const user = document.getElementById("answerInput").value.trim();
-  const correct = levels[level - 1].answer;
+  const data = levels[level - 1];
+
+  // Compute correct answer
+  const correct = (typeof data.answer === "function")
+                  ? String(data.answer(state))
+                  : String(data.answer);
 
   if (user === correct) {
     document.getElementById("feedback").innerText = "Correct!";
-    level++;
 
+    // Update memory
+    state.last = Number(correct);
+    state.answers.push(Number(correct));
+
+    level++;
     if (level > levels.length) level = 1;
 
   } else {
     document.getElementById("feedback").innerText = "Wrong! Back to Level 1.";
+
+    // Reset everything
     level = 1;
+    state = { start: null, last: null, answers: [] };
   }
 
   setTimeout(loadLevel, 1000);
