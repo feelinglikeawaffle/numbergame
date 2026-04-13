@@ -176,8 +176,15 @@ function generateRandomLevel() {
   }
 
   const questionText = textParts.join(" ");
-  const answerValue = value;
-  return { questionText, answerValue };
+
+// compute final answer
+let answerValue = value;
+
+// round decimals to nearest tenth
+answerValue = Math.round(answerValue * 10) / 10;
+
+return { questionText, answerValue };
+
 }
 
 // ------------------------------
