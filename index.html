@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Level Game</title>
+<style>
+  body { background:#111; color:#fff; font-family:Arial; text-align:center; padding-top:60px; }
+  input { padding:10px; font-size:18px; width:200px; text-align:center; }
+  button { padding:10px 20px; font-size:18px; cursor:pointer; margin-left:10px; }
+  #feedback { margin-top:20px; font-size:22px; }
+</style>
+</head>
+<body>
+
+<h1>Level Game</h1>
+<p id="levelText">Level: 1</p>
+<p id="questionText"></p>
+
+<input id="answerInput" placeholder="Your answer">
+<button onclick="submitAnswer()">Submit</button>
+
+<div id="feedback"></div>
+
+<script>
+// ------------------------------
+// LEVEL SYSTEM
+// ------------------------------
+let level = 1;
+
+// ------------------------------
+// LEVEL DATA (YOU EDIT THESE)
+// ------------------------------
+const levels = [
+  {
+    // LEVEL 1 — shows the answer directly
+    question: () => {
+      const n = Math.floor(Math.random() * 99) + 1;
+      levels[0].answer = String(n);
+      return "The answer is " + n;
+    },
+    answer: null
+  },
+
+  {
+    question: "What is 5 + 5?",
+    answer: "10"
+  },
+
+  {
+    question: "Type the word apple",
+    answer: "apple"
+  }
+
+  // Add more levels here...
+];
+
+// ------------------------------
+// LOAD CURRENT LEVEL
+// ------------------------------
+function loadLevel() {
+  const data = levels[level - 1];
+
+  const q = typeof data.question === "function"
+            ? data.question()
+            : data.question;
+
+  document.getElementById("questionText").innerText = q;
+  document.getElementById("answerInput").value = "";
+  document.getElementById("feedback").innerText = "";
+  document.getElementById("levelText").innerText = "Level: " + level;
+}
+
+// ------------------------------
+// SUBMIT ANSWER
+// ------------------------------
+function submitAnswer() {
+  const user = document.getElementById("answerInput").value.trim();
+  const correct = levels[level - 1].answer;
+
+  if (user === correct) {
+    document.getElementById("feedback").innerText = "Correct!";
+    level++;
+
+    if (level > levels.length) level = 1;
+
+  } else {
+    document.getElementById("feedback").innerText = "Wrong! Back to Level 1.";
+    level = 1;
+  }
+
+  setTimeout(loadLevel, 1000);
+}
+
+// ------------------------------
+// START GAME
+// ------------------------------
+loadLevel();
+</script>
+
+</body>
+</html>
